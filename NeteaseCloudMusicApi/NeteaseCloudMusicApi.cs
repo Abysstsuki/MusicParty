@@ -161,13 +161,37 @@ public class NeteaseCloudMusicApi : IMusicApi
             throw new Exception($"Unable to get music, message: {resp}");
         var name = (string)j["songs"]![0]!["name"]!;
         var ar = j["songs"]![0]!["ar"]!.AsArray().Select(x => x!["name"]!.GetValue<string>()).ToArray();
-        return new Music(id, name, ar);
+        var imgUrl = (string)j["songs"]![0]!["al"]!["picUrl"]!; // �� JSON �л�ȡ ImgUrl
+
+        return new Music("NeteaseCloudMusic", id, name, ar, imgUrl); // ���� Music ����ʱ���� ImgUrl
     }
 
-    public Task<IEnumerable<Music>> SearchMusicByNameAsync(string name)
+    //public Task<IEnumerable<PlayList>> SearchMusicByNameAsync(string name)
+    //{
+    //    throw new NotImplementedException();
+    //}
+
+    public async Task<IEnumerable<Music>> SearchMusicByNameAsync(string name, int offset = 0)
     {
-        throw new NotImplementedException();
+        // 调用网易云音乐的搜索接口
+        // var resp = await _http.GetStringAsync(_url + $"/search?keywords={name}&type=1&limit=10&offset={offset}");
+        var resp = await _http.GetStringAsync(_url + $"/search?keywords={name}");
+        // 解析返回的 JSON 响应
+        var j = JsonNode.Parse(resp)!;
+
+        // 判断返回的 code 是否成功
+        if ((int)j["code"]! != 200)
+            throw new Exception($"Unable to search music, message: {resp}");
+
+        // 从搜索结果中提取歌曲信息
+        return from song in j["result"]!["songs"]!.AsArray()
+               let id = song["id"].GetValue<long>().ToString()
+               let songName = (string)song["name"]
+               let artists = song["artists"]!.AsArray().Select(artist => artist!["name"]!.GetValue<string>()).ToArray()
+               let imgUrl = (string)song["album"]!["picUrl"]!
+               select new Music("NeteaseCloudMusic", id, songName, artists, imgUrl);
     }
+
 
     public async Task<IEnumerable<MusicServiceUser>> SearchUserAsync(string keyword)
     {
@@ -188,9 +212,9 @@ public class NeteaseCloudMusicApi : IMusicApi
             throw new Exception($"Unable to get user playlist, message: ${resp}");
 
         return from b in j["playlist"]!.AsArray()
-            let id = b["id"].GetValue<long>().ToString()
-            let name = (string)b["name"]
-            select new PlayList(id, name);
+               let id = b["id"].GetValue<long>().ToString()
+               let name = (string)b["name"]
+               select new PlayList(id, name);
     }
 
     public async Task<IEnumerable<Music>> GetMusicsByPlaylistAsync(string id, int offset = 0)
@@ -201,9 +225,9 @@ public class NeteaseCloudMusicApi : IMusicApi
             throw new Exception($"Unable to get playlist musics, message: {resp}");
 
         return from b in j["songs"]!.AsArray()
-            let id2 = b["id"].GetValue<long>().ToString()
-            let name = (string)b["name"]
-            let artists = b["ar"].AsArray().Select(y => (string)y["name"]).ToArray()
-            select new Music(id2, name, artists);
+               let id2 = b["id"].GetValue<long>().ToString()
+               let name = (string)b["name"]
+               let artists = b["ar"].AsArray().Select(y => (string)y["name"]).ToArray()
+               select new Music("NeteaseCloudMusic", id2, name, artists);
     }
 }

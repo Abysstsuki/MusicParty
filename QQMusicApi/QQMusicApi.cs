@@ -5,7 +5,7 @@ namespace MusicParty.MusicApi.QQMusic;
 public class QQMusicApi : IMusicApi
 {
     private readonly string _url;
-    private readonly HttpClient _http = new();
+    private readonly HttpClient _http = new HttpClient(new HttpClientHandler() { UseCookies = false });
 
     public QQMusicApi(string url, string cookie)
     {
@@ -57,13 +57,9 @@ public class QQMusicApi : IMusicApi
         var name = j["data"]!["track_info"]!["name"]!.GetValue<string>();
         var artists = j["data"]!["track_info"]!["singer"]!.AsArray()
             .Select(x => x!["name"]!.GetValue<string>()).ToArray();
-        return new Music(id, name, artists);
+        return new Music("QQ",id, name, artists,null);
     }
 
-    public async Task<IEnumerable<Music>> SearchMusicByNameAsync(string name)
-    {
-        throw new NotImplementedException();
-    }
 
     public async Task<PlayableMusic> GetPlayableMusicAsync(Music music)
     {
@@ -129,9 +125,14 @@ public class QQMusicApi : IMusicApi
             .Select(x =>
             {
                 var artists = x!["singer"]!.AsArray().Select(y => y!["name"]!.GetValue<string>()).ToArray();
-                return new Music(x["songmid"]!.GetValue<string>() + ',' + x["strMediaMid"]!.GetValue<string>(),
+                return new Music("QQ",x["songmid"]!.GetValue<string>() + ',' + x["strMediaMid"]!.GetValue<string>(),
                     x["songorig"]!.GetValue<string>(), artists);
             });
         return musics.Skip(offset).Take(10);
+    }
+
+    public Task<IEnumerable<PlayList>> SearchMusicByNameAsync(string name)
+    {
+        throw new NotImplementedException();
     }
 }

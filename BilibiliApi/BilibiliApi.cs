@@ -48,7 +48,7 @@ public class BilibiliApi : IMusicApi
     {
         var http = new HttpClient();
         http.DefaultRequestHeaders.Add("Cookie", $"SESSDATA={sessdata}");
-        var resp = await http.GetStringAsync("https://api.bilibili.com/nav");
+        var resp = await http.GetStringAsync("https://api.bilibili.com/x/web-interface/nav");
         var j = JsonNode.Parse(resp)!;
         return j["code"]!.GetValue<int>() == 0;
     }
@@ -76,13 +76,20 @@ public class BilibiliApi : IMusicApi
         var j = JsonSerializer.Deserialize<BVQueryJson.RootObject>(resp);
         if (j is null || j.code != 0 || j.data is null)
             throw new Exception($"Unable to get playable music, message: {resp}");
-        return new Music($"{j.data.bvid},{j.data.cid}", j.data.title, new[] { j.data.owner.name });
+        string imgUrl = j.data.pic;
+        return new Music("Bilibili", $"{j.data.bvid},{j.data.cid},{j.data.aid}", j.data.title, new[] { j.data.owner.name }, imgUrl);
     }
 
-    public async Task<IEnumerable<Music>> SearchMusicByNameAsync(string name)
-    {
-        throw new NotImplementedException();
-    }
+    //public async Task<IEnumerable<PlayList>> SearchMusicByNameAsync(string keyname)
+    //{
+    //    var resp = await _http.GetStringAsync($"https://api.bilibili.com/x/web-interface/search/type?search_type=video&keyword={keyname}");
+    //    var j = JsonSerializer.Deserialize<SearchMusicJson.RootObject>(resp);
+    //    if (j is null || j.code != 0 || j.data?.result is null)
+    //        return Enumerable.Empty<PlayList>();
+
+    //    return j.data.result.Select(x => new PlayList(x.bvid, x.title));
+    //}
+
 
     public async Task<PlayableMusic> GetPlayableMusicAsync(Music music)
     {
@@ -97,7 +104,8 @@ public class BilibiliApi : IMusicApi
         {
             Url = $"/musicproxy?timestamp={DateTimeOffset.Now.ToUnixTimeSeconds()}",
             Length = j.data.dash.duration * 1000,
-            NeedProxy = true, TargetUrl = j.data.dash.audio.OrderByDescending(x => x.id).First().baseUrl,
+            NeedProxy = true,
+            TargetUrl = j.data.dash.audio.OrderByDescending(x => x.id).First().baseUrl,
             Referer = "https://www.bilibili.com"
         };
     }
@@ -136,11 +144,30 @@ public class BilibiliApi : IMusicApi
         if (j.data?.medias is null)
             return Array.Empty<Music>();
         return j.data.medias.Where(x => x.title != "已失效视频" && x.type == 2)
-            .Select(x => new Music(x.bvid, x.title, new[] { x.upper.name }));
+            .Select(x => new Music("Bilibili", x.bvid, x.title, new[] { x.upper.name }));
     }
 
     #region JsonClasses
 
+    private class SearchMusicJson
+    {
+        public class RootObject
+        {
+            public long code { get; init; }
+            public Data? data { get; init; }
+        }
+
+        public class Data
+        {
+            public Result[]? result { get; init; }
+        }
+
+        public class Result
+        {
+            public string bvid { get; init; }
+            public string title { get; init; }
+        }
+    }
     private class SearchUserJson
     {
         public class RootObject
@@ -212,7 +239,9 @@ public class BilibiliApi : IMusicApi
             string bvid,
             string title,
             Owner owner,
-            long cid
+            long cid,
+            string pic,
+            long aid
         );
 
         public record Owner(
