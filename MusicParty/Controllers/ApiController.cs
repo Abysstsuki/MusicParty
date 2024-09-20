@@ -44,6 +44,33 @@ public class ApiController : ControllerBase
         return Ok(await ma!.SearchUserAsync(keyword));
     }
 
+
+    [HttpGet, Route("{apiName}/searchmusic/{keyword}")]
+    public async Task<IActionResult> SearchMusic(string apiName, string keyword, [FromQuery] int page = 1)
+    {
+        // 检查 API 是否存在
+        if (!_musicApis.TryGetMusicApi(apiName, out var ma))
+            return BadRequest($"Unknown API provider {apiName}.".BuildResponseMessageWithCode(1));
+
+        if (string.IsNullOrEmpty(keyword))
+            return BadRequest("Keyword cannot be empty.".BuildResponseMessageWithCode(2));
+
+        if (page <= 0)
+            return BadRequest("Page number must be greater than 0.".BuildResponseMessageWithCode(3));
+
+        try
+        {
+            // 调用相应的 API 服务进行搜索
+            var results = await ma!.SearchMusicByNameAsync(keyword, page);
+            return Ok(results);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred while searching music.");
+            return StatusCode(500, "Internal server error.".BuildResponseMessageWithCode(5));
+        }
+    }
+
     [HttpGet, Route("{apiName}/bind/{identifier}"), Authorize]
     public IActionResult Bind(string apiName, string identifier)
     {
@@ -101,4 +128,6 @@ public class ApiController : ControllerBase
             return
                 StatusCode(502, $"Check your credential.".BuildResponseMessageWithCode(4));
     }
+
+
 }

@@ -69,16 +69,11 @@ export class Connection {
   public async chatSay(content: string): Promise<void> {
     await this._conn.invoke("ChatSay", content);
   }
-  
 }
-
 export interface Music {
-  id:string;
   url: string;
   name: string;
   artists: string[];
-  imgUrl:string;
-  apiname:string;
 }
 
 export interface MusicOrderAction {

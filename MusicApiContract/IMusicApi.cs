@@ -5,7 +5,12 @@ public interface IMusicApi
     string ServiceName { get; }
     Task<bool> TrySetCredentialAsync(string cred);
     Task<Music> GetMusicByIdAsync(string id);
-    Task<IEnumerable<Music>> SearchMusicByNameAsync(string name);
+    Task<IEnumerable<Music>> SearchMusicByNameAsync(string name, int offset = 0)
+    {
+        throw new NotImplementedException();
+    }
+
+    //Task<IEnumerable<PlayList>> SearchMusicByNameAsync(string name);
     Task<PlayableMusic> GetPlayableMusicAsync(Music music);
     Task<IEnumerable<MusicServiceUser>> SearchUserAsync(string keyword);
     Task<IEnumerable<PlayList>> GetUserPlayListAsync(string userIdentifier);
