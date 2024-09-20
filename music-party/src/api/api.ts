@@ -10,6 +10,7 @@ export async function getMusicApis(): Promise<string[]> {
   return j;
 }
 
+
 export async function searchUsers(
   keyword: string,
   apiName: string
@@ -48,6 +49,25 @@ export async function getMusicsByPlaylist(
   return j;
 }
 
+export async function searchMusicByName(
+  keyword: string,
+  apiName: string,
+): Promise<Music[]> {
+  const resp = await fetch(`/api/${apiName}/searchmusic/${keyword}`);
+  
+  // 解析返回的JSON响应
+  const j = await resp.json();
+
+  // 如果请求失败，抛出异常
+  if (!resp.ok) {
+    throw new Error(`Failed to search music: ${j.message}`);
+  }
+
+  // 返回歌曲列表
+  return j;
+}
+
+
 export interface User {
   name: string;
 }
@@ -66,4 +86,6 @@ export interface Music {
   id: string;
   name: string;
   artists: string[];
+  imgUrl: string;
+  apiname:string;
 }
