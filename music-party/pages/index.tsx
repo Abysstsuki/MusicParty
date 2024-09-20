@@ -1,9 +1,11 @@
+import "../styles/Home.module.css";
 import Head from 'next/head';
 import React, { useEffect, useRef, useState } from 'react';
 import { Connection, Music, MusicOrderAction } from '../src/api/musichub';
 import {
   Text,
   Button,
+  chakra,
   Card,
   CardBody,
   CardHeader,
@@ -35,6 +37,7 @@ import {
   Box,
 } from '@chakra-ui/react';
 import { MusicPlayer } from '../src/components/musicplayer';
+import { VideoPlayer } from '../src/components/videoplayer';
 import { getMusicApis, getProfile } from '../src/api/api';
 import { NeteaseBinder } from '../src/components/neteasebinder';
 import { MyPlaylist } from '../src/components/myplaylist';
@@ -64,8 +67,12 @@ export default function Home() {
   const [chatToSend, setChatToSend] = useState('');
   const [apis, setApis] = useState<string[]>([]);
   const t = useToast();
+  const [bvid, cid, aid] = nowPlaying?.music.id ? nowPlaying.music.id.split(',') : ['', '', ''];
 
   const conn = useRef<Connection>();
+
+
+
   useEffect(() => {
     if (!conn.current) {
       conn.current = new Connection(
@@ -151,189 +158,228 @@ export default function Home() {
   }, []);
 
   return (
-    <Grid templateAreas={`"nav main"`} gridTemplateColumns={'2fr 5fr'} gap='1'>
-      <Head>
-        <title>🎵 音趴 🎵</title>
-        <meta name='description' content='享受音趴！' />
-        <link rel='icon' href='/favicon.ico' />
-        <meta name='referrer' content='never' />
-      </Head>
-      <GridItem area={'nav'}>
-        <Stack m={4} spacing={4}>
-          <Card>
-            <CardHeader>
-              <Heading>{`欢迎, ${userName}!`}</Heading>
-            </CardHeader>
-            <CardBody>
-              <Stack>
-                <Popover>
-                  {({ onClose }) => (
-                    <>
-                      <PopoverTrigger>
-                        <Button>修改名字</Button>
-                      </PopoverTrigger>
-                      <Portal>
-                        <PopoverContent>
-                          <PopoverArrow />
-                          <PopoverHeader>修改名字</PopoverHeader>
-                          <PopoverCloseButton />
-                          <PopoverBody>
-                            <Input
-                              value={newName}
-                              placeholder={'输入新名字'}
-                              onChange={(e) => setNewName(e.target.value)}
-                            ></Input>
-                          </PopoverBody>
-                          <PopoverFooter>
-                            <Button
-                              colorScheme='blue'
-                              onClick={async () => {
-                                if (newName === '') return;
-                                await conn.current!.rename(newName);
-                                const user = await getProfile();
-                                setUserName(user.name);
-                                onClose();
-                                setNewName('');
-                              }}
-                            >
-                              确认
-                            </Button>
-                          </PopoverFooter>
-                        </PopoverContent>
-                      </Portal>
-                    </>
-                  )}
-                </Popover>
-                {apis.includes('NeteaseCloudMusic') && <NeteaseBinder />}
-                {apis.includes('QQMusic') && <QQMusicBinder />}
-                {apis.includes('Bilibili') && <BilibiliBinder />}
-              </Stack>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardHeader>
-              <Heading>在线</Heading>
-            </CardHeader>
-            <CardBody>
-              <UnorderedList>
-                {onlineUsers.map((u) => {
-                  return <ListItem key={u.id}>{u.name}</ListItem>;
-                })}
-              </UnorderedList>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardHeader>
-              <Heading>聊天</Heading>
-            </CardHeader>
-            <CardBody>
-              <Flex>
-                <Input
-                  flex={1}
-                  value={chatToSend}
-                  onChange={(e) => setChatToSend(e.target.value)}
-                  onKeyDown={async (e) => {
-                    if (e.key === "Enter") {
-                      if (chatToSend === '') return;
-                      await conn.current?.chatSay(chatToSend);
-                      setChatToSend('');
-                    }
-                  }}
-                />
-                <Button
-                  ml={2}
-                  onClick={async () => {
-                    if (chatToSend === '') return;
-                    await conn.current?.chatSay(chatToSend);
-                    setChatToSend('');
-                  }}
-                >
-                  发送
-                </Button>
-              </Flex>
-              <UnorderedList>
-                {chatContent.map((s) => (
-                  <ListItem key={Math.random() * 1000}>
-                    {`${s.name}: ${s.content}`}
-                  </ListItem>
-                ))}
-              </UnorderedList>
-            </CardBody>
-          </Card>
+    <Box>
+      <Flex flexDirection={{ base: "column", md: "row" }}>
+        <Head>
+          <title>🎵 音趴 🎵</title>
+          <meta name='description' content='享受音趴！' />
+          <link rel='icon' href='/favicon.ico' />
+          <meta name='referrer' content='never' />
+        </Head>
+        <Stack width={{ base: "100%", md: "25%" }} flexGrow={1} gridGap={4}>
+          <GridItem area={'nav'} className="userarea">
+            <Stack m={4} spacing={4}>
+              <Card>
+                <CardHeader>
+                  <Heading>{`欢迎, ${userName}!`}</Heading>
+                  <Text>现已支持b站视频播放,音画不同步只能刷新</Text>
+                </CardHeader>
+                <CardBody>
+                  <Stack>
+                    <Popover>
+                      {({ onClose }) => (
+                        <>
+                          <PopoverTrigger>
+                            <Button>修改名字</Button>
+                          </PopoverTrigger>
+                          <Portal>
+                            <PopoverContent>
+                              <PopoverArrow />
+                              <PopoverHeader>修改名字</PopoverHeader>
+                              <PopoverCloseButton />
+                              <PopoverBody>
+                                <Input
+                                  value={newName}
+                                  placeholder={'输入新名字'}
+                                  onChange={(e) => setNewName(e.target.value)}
+                                ></Input>
+                              </PopoverBody>
+                              <PopoverFooter>
+                                <Button
+                                  colorScheme='blue'
+                                  onClick={async () => {
+                                    if (newName === '') return;
+                                    await conn.current!.rename(newName);
+                                    const user = await getProfile();
+                                    setUserName(user.name);
+                                    onClose();
+                                    setNewName('');
+                                  }}
+                                >
+                                  确认
+                                </Button>
+                              </PopoverFooter>
+                            </PopoverContent>
+                          </Portal>
+                        </>
+                      )}
+                    </Popover>
+                    {apis.includes('NeteaseCloudMusic') && <NeteaseBinder />}
+                    {apis.includes('QQMusic') && <QQMusicBinder />}
+                    {apis.includes('Bilibili') && <BilibiliBinder />}
+                  </Stack>
+                </CardBody>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <Heading>在线</Heading>
+                </CardHeader>
+                <CardBody>
+                  <UnorderedList>
+                    {onlineUsers.map((u) => {
+                      return (
+                        <ListItem key={u.id}>
+                          <span
+                            style={{ color: u.id == "abyss" ? "red" : "black" }}>
+                          </span>
+                          {u.name}
+                        </ListItem>
+                      );
+                    })}
+                  </UnorderedList>
+
+                </CardBody>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <Heading>聊天</Heading>
+                </CardHeader>
+                <CardBody>
+                  <Flex>
+                    <Input
+                      flex={1}
+                      value={chatToSend}
+                      onChange={(e) => setChatToSend(e.target.value)}
+                      onKeyDown={async (e) => {
+                        if (e.key === "Enter") {
+                          if (chatToSend === '' || chatToSend.length >= 30) {
+                            setChatToSend('');
+                            return;
+                          }
+                          await conn.current?.chatSay(chatToSend);
+                          setChatToSend('');
+                        }
+                      }}
+                    />
+                    <Button
+                      ml={2}
+                      onClick={async () => {
+                        if (chatToSend === '' || chatToSend.length >= 30) {
+                          setChatToSend('');
+                          return;
+                        }
+                        await conn.current?.chatSay(chatToSend);
+                        setChatToSend('');
+                      }}
+                    >
+                      发送
+                    </Button>
+                  </Flex>
+                  <UnorderedList>
+                    {chatContent.map((s) => (
+                      <ListItem key={Math.random() * 1000}>
+                        {`${s.name}: ${s.content}`}
+                      </ListItem>
+                    ))}
+                  </UnorderedList>
+                </CardBody>
+              </Card>
+            </Stack>
+          </GridItem>
         </Stack>
-      </GridItem>
+        <Stack width={{ base: "100%", md: "75%" }} flexGrow={2} gridGap={4}>
+          <GridItem area={'main'}>
+            <Tabs>
+              <TabList>
+                <Tab>播放列表</Tab>
+                <Tab>从音乐ID点歌</Tab>
+                <Tab>从歌单点歌</Tab>
+              </TabList>
+              <TabPanels>
+                <TabPanel>
+                  <Box>
+                    {nowPlaying ? (
+                      <>
+                        <Heading style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", fontWeight: "normal" }}>
+                          {`由 ${nowPlaying?.enqueuer} 点歌`}
+                          {nowPlaying?.music.apiname === "NeteaseCloudMusic" && (
+                            <img
+                              src={nowPlaying?.music.imgUrl}
+                              alt="音乐封面"
+                              width={500}
+                              height={500}
+                              style={{ display: "block", margin: "0 auto" }}
+                            />
+                          )}
 
-      <GridItem area={'main'}>
-        <Tabs>
-          <TabList>
-            <Tab>播放列表</Tab>
-            <Tab>从音乐ID点歌</Tab>
-            <Tab>从歌单点歌</Tab>
-          </TabList>
-          <TabPanels>
-            <TabPanel>
-              <Flex flexDirection={'row'} mb={4} alignItems={'flex-end'}>
-                {nowPlaying ? (
-                  <>
-                    <Heading>
-                      {`正在播放:\n ${nowPlaying?.music.name} - ${nowPlaying?.music.artists}`}
-                    </Heading>
-                    <Text size={'md'} fontStyle={'italic'} ml={2}>
-                      {`由 ${nowPlaying?.enqueuer} 点歌`}
-                    </Text>
-                  </>
-                ) : (
-                  <Heading>暂无歌曲正在播放</Heading>
-                )}
-              </Flex>
+                          {nowPlaying?.music.apiname === "Bilibili" && (
+                            <VideoPlayer
+                              src={src}
+                              playtime={playtime}
+                              aid={aid}
+                              bvid={bvid}
+                              cid={cid}
+                            />
+                          )}
+                          <span style={{ textAlign: "center", marginBottom: "10px", fontWeight: "normal" }}>
+                            {nowPlaying?.music.name} - {nowPlaying?.music.artists}
+                          </span>
+                        </Heading>
+                      </>
+                    ) : (
+                      <Heading style={{ fontWeight: "normal" }}>暂无歌曲正在播放</Heading>
+                    )}
+                  </Box>
 
-              <MusicPlayer
-                src={src}
-                playtime={playtime}
-                nextClick={() => {
-                  conn.current?.nextSong();
-                }}
-                reset={() => {
-                  console.log('reset');
-                  conn.current!.requestSetNowPlaying();
-                  conn.current!.getMusicQueue().then((q) => {
-                    setQueue(q);
-                  });
-                }}
-              />
-
-              <MusicQueue
-                queue={queue}
-                top={(actionId) => {
-                  conn.current!.topSong(actionId);
-                }}
-              />
-            </TabPanel>
-            <TabPanel>
-              <MusicSelector apis={apis} conn={conn.current!} />
-            </TabPanel>
-            <TabPanel>
-              {!inited ? (
-                <Text>初始化...</Text>
-              ) : (
-                <MyPlaylist
-                  apis={apis}
-                  enqueue={(id, apiName) => {
-                    conn
-                      .current!.enqueueMusic(id, apiName)
-                      .then(() => {
-                        toastEnqueueOk(t);
-                      })
-                      .catch(() => {
-                        toastError(t, `音乐 {id: ${id}} 加入队列失败`);
+                  <MusicPlayer
+                    src={src}
+                    playtime={playtime}
+                    nextClick={() => {
+                      conn.current?.nextSong();
+                    }}
+                    reset={() => {
+                      console.log('reset');
+                      conn.current!.requestSetNowPlaying();
+                      conn.current!.getMusicQueue().then((q) => {
+                        setQueue(q);
                       });
-                  }}
-                />
-              )}
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
-      </GridItem>
-    </Grid>
+                    }}
+                  />
+
+                  <MusicQueue
+                    queue={queue}
+                    top={(actionId) => {
+                      conn.current!.topSong(actionId);
+                    }}
+                  />
+                </TabPanel>
+                <TabPanel>
+                  <MusicSelector apis={apis} conn={conn.current!} />
+                </TabPanel>
+                <TabPanel>
+                  {!inited ? (
+                    <Text>初始化...</Text>
+                  ) : (
+                    <MyPlaylist
+                      apis={apis}
+                      enqueue={(id, apiName) => {
+                        conn
+                          .current!.enqueueMusic(id, apiName)
+                          .then(() => {
+                            toastEnqueueOk(t);
+                          })
+                          .catch(() => {
+                            toastError(t, `音乐 {id: ${id}} 加入队列失败`);
+                          });
+                      }}
+                    />
+                  )}
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
+          </GridItem>
+        </Stack>
+      </Flex>
+    </Box>
   );
 }
