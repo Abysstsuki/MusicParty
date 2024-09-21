@@ -45,8 +45,8 @@ export const MusicSelector = (props: { apis: string[]; conn: Connection }) => {
     if (keyword.trim() === "") return;
     setLoading(true);
     try {
-      const results = await searchMusicByName(keyword, "NeteaseCloudMusic"); // 确保此函数已导出
-      //const results = await searchMusicByName(keyword, apiName); // 确保此函数已导出
+      //const results = await searchMusicByName(keyword, "NeteaseCloudMusic"); // 确保此函数已导出
+      const results = await searchMusicByName(keyword, apiName); // 确保此函数已导出
       setSearchResults(results);
       setPage(1); // 搜索后重置为第一页
     } catch (e) {

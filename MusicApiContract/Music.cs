@@ -2,9 +2,9 @@ namespace MusicParty.MusicApi
 {
     public record Music(string Apiname, string Id, string Name, string[] Artists, string ImgUrl)
     {
-        // 构造函数
+        // 鏋勯�犲嚱鏁帮紝甯︽湁榛樿灏侀潰鍥剧墖鐨勫鐞嗛�昏緫
         public Music(string Apiname, string Id, string Name, string[] Artists)
-            : this(Apiname, Id, Name, Artists, null) // 默认将 ImgUrl 设置为 null
+    : this(Apiname, Id, Name, Artists, null)
         {
         }
     }

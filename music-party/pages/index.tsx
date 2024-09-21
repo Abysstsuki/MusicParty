@@ -195,7 +195,7 @@ export default function Home() {
               <Card>
                 <CardHeader>
                   <Heading>{`欢迎, ${userName}!`}</Heading>
-                  <Text>现已加入肯德基疯狂星期四豪华套餐</Text>
+                  <Text>V1.5 更新了QQ音乐支持，优化界面</Text>
                 </CardHeader>
                 <CardBody>
                   <Stack>
