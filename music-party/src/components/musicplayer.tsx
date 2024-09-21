@@ -15,8 +15,15 @@ import {
   useDisclosure,
   useToast,
   Box,
+  Image,
+  Slider,
+  SliderTrack,
+  SliderFilledTrack,
+  SliderThumb,
+  Center,
+
 } from "@chakra-ui/react";
-import { ArrowRightIcon } from "@chakra-ui/icons";
+import { ArrowRightIcon, RepeatIcon } from "@chakra-ui/icons";
 import React, { useEffect, useRef, useState } from "react";
 import { platform } from "os";
 
@@ -25,7 +32,11 @@ export const MusicPlayer = (props: {
   playtime: number;
   nextClick: () => void;
   reset: () => void;
+  title: string;
+  artists: string[];
+  coverImage: string;
 }) => {
+  const artistString = props.artists.join(', '); // 在组件中处理拼接逻辑
   const audio = useRef<HTMLAudioElement | null>(null);
   const [length, setLength] = useState(100);
   const [time, setTime] = useState(0);
@@ -40,6 +51,7 @@ export const MusicPlayer = (props: {
   };
 
   useEffect(() => {
+
     if (!audio.current) {
       audio.current = new Audio();
       audio.current.addEventListener("durationchange", () => {
@@ -83,92 +95,119 @@ export const MusicPlayer = (props: {
 
   return (
     <>
-      <Flex flexDirection={"row"} alignItems={"center"}>
-        <Progress flex={12} height={"32px"} max={length} value={time} />
-        {/* <Text flex={2} textAlign={"center"}>{${Math.floor(
-          time
-        )} / ${Math.floor(length)}}</Text> */}
-        <Text flex={2} textAlign={"center"}>{`${formatTime(time)} / ${formatTime(length)}`}</Text>
-        {/* <Tooltip hasArrow label="当音乐没有自动播放时，点我试试">
-          <IconButton
-            flex={1}
-            aria-label={"Play"}
-            mr={2}
-            icon={
-              <Icon viewBox="0 0 1024 1024">
-                <path
-                  d="M128 138.666667c0-47.232 33.322667-66.666667 74.176-43.562667l663.146667 374.954667c40.96 23.168 40.853333 60.8 0 83.882666L202.176 928.896C161.216 952.064 128 932.565333 128 885.333333v-746.666666z"
-                  fill="#3D3D3D"
-                  p-id="2949"
-                ></path>
-              </Icon>
-            }
-            onClick={() => {
-              audio.current?.play();
-              audio.current?.pause();
-              props.reset();
-            }}
+      <Flex
+        direction={{ base: "column", md: "row" }}
+        alignItems="center"
+        justifyContent="space-between"
+        p={4}
+        bg="gray.100"
+        borderRadius="lg"
+        boxShadow="lg"
+        w="100%"
+        //maxW="900px"
+        mx="auto"
+      >
+        {/* 封面区域 */}
+        <Box position="relative" mb={{ base: 4, md: 0 }} mr={{ md: 6 }}>
+          <Image
+            src={props.coverImage}
+            alt="封面"
+            w={{ base: "240px", md: "300px" }}
+            h={{ base: "240px", md: "300px" }}
+            borderRadius="full"
+            position="absolute"
+            top="5%"
+            left="5%"
+            transform="translate(-50%, -50%)"
+            animation="spin 20s linear infinite"
           />
-        </Tooltip> */}
-        <Tooltip hasArrow label="刷新，调整音量后点此处同步音频">
-          <IconButton
-            flex={1}
-            aria-label={"Play"}
-            mr={2}
-            icon={
-              <Icon viewBox="0 0 1024 1024">
-                <path d="M128 138.666667c0-47.232 33.322667-66.666667 74.176-43.562667l663.146667 374.954667c40.96 23.168 40.853333 60.8 0 83.882666L202.176 928.896C161.216 952.064 128 932.565333 128 885.333333v-746.666666z" fill="#3D3D3D" p-id="2949"></path>
-              </Icon>
-            }
-            onClick={() => {
-              if (audio.current?.paused) {
-                audio.current?.play();
-              } else {
-                audio.current?.pause();
-              }
-              props.reset();
-            }}
-          />
-        </Tooltip>
-        <Tooltip hasArrow label={"切歌"}>
-          <IconButton
-            flex={1}
-            icon={<ArrowRightIcon />}
-            aria-label={"切歌"}
-            onClick={props.nextClick}
-          />
-        </Tooltip>
+          <Box
+            w={{ base: "270px", md: "330px" }}
+            h={{ base: "270px", md: "330px" }}
+            borderRadius="full"
+            background="url('/static_record.png') no-repeat center"
+            backgroundSize="contain"
+            animation="spin 20s linear infinite"
+          >
+          </Box>
+        </Box>
 
+        {/* 信息与控制区域 */}
+        <Box flex={1} width="100%" >
+          <Box mb={4} textAlign={{ base: "center", md: "left" }}>
+            <Text fontSize={{ base: "2xl", md: "4xl" }} fontWeight="bold">{props.title}</Text>
+            <Text fontSize={{ base: "md", md: "lg" }} color="gray.600">{artistString}</Text>
+          </Box>
+
+          {/* 进度条和时间显示 */}
+          <Flex alignItems="center" mb={4} justifyContent="center">
+            <Progress
+              value={time}
+              max={length}
+              w={{ base: "90%", md: "100%" }} // 手机端宽度设置为90%，桌面端100%
+              h="12px"
+              borderRadius="full"
+              bg="gray.300"
+              sx={{
+                "& > div": { backgroundColor: "#4caf50", borderRadius: "full" }, // 自定义进度条颜色
+              }}
+            />
+          </Flex>
+
+          <Text textAlign="center" fontSize={{ base: "sm", md: "md" }}>{`${formatTime(time)} / ${formatTime(length)}`}</Text>
+
+          {/* 音量控制和按钮区域 */}
+          <Flex alignItems="center" justifyContent="space-between" mt={4} direction={{ base: "column", md: "row" }}>
+            {/* 音量滑块 */}
+            <Box width="100%" maxW={{ base: "200px", md: "300px" }} textAlign="center">
+              <Text fontSize={{ base: "md", md: "lg" }}>音量</Text>
+              <Slider
+                min={0}
+                max={1}
+                step={0.01}
+                value={volume}
+                onChange={(value) => setVolume(value)}
+              >
+                <SliderTrack bg="gray.300">
+                  <SliderFilledTrack bg="#4caf50" />
+                </SliderTrack>
+                <SliderThumb boxSize={6} bg="green.500" />
+              </Slider>
+            </Box>
+
+            {/* 控制按钮 */}
+            <Flex mt={{ base: 4, md: 0 }} alignItems="center">
+              <Tooltip hasArrow label="刷新，调整音量后点此处同步音频">
+                <IconButton
+                  aria-label="刷新"
+                  icon={<RepeatIcon />}
+                  onClick={() => {
+                    if (audio.current?.paused) {
+                      audio.current?.play();
+                    } else {
+                      audio.current?.pause();
+                    }
+                    props.reset();
+                  }}
+                  mr={2}
+                  colorScheme="green"
+                  size="lg"
+                />
+              </Tooltip>
+
+              <Tooltip hasArrow label="切歌">
+                <IconButton
+                  aria-label="切歌"
+                  icon={<ArrowRightIcon />}
+                  onClick={props.nextClick}
+                  colorScheme="green"
+                  size="lg"
+                />
+              </Tooltip>
+            </Flex>
+          </Flex>
+        </Box>
       </Flex>
-      {/* 包裹音量滑块的 Box */}
-      {/* <Box width="100px" mt="4">
-        <Text>
-          调整音量
-        </Text>
-        <label>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={volume}
-            onChange={handleVolumeChange}
-          />
-        </label>
-      </Box> */}
-      <Box width="100px" mt="4">
-        <Text>调整音量</Text>
-        <label>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={volume}
-            onChange={(e) => setVolume(parseFloat(e.target.value))}
-          />
-        </label>
-      </Box>
     </>
   );
 };

@@ -107,6 +107,11 @@ public class MusicHub : Microsoft.AspNetCore.SignalR.Hub
     {
         await _musicBroadcaster.TopSong(actionId, Context.User!.Identity!.Name!);
     }
+    public async Task DelSong(string actionId)
+    {
+        // 调用 MusicBroadcaster 的 DelSong 方法，传递 actionId 和删除者的 Id (当前用户的 Id)
+        await _musicBroadcaster.DelSong(actionId, Context.User!.Identity!.Name!);
+    }
 
     public async Task Rename(string newName)
     {

@@ -35,13 +35,14 @@ import {
   Flex,
   Highlight,
   Box,
+  Icon
 } from '@chakra-ui/react';
 import { MusicPlayer } from '../src/components/musicplayer';
 import { VideoPlayer } from '../src/components/videoplayer';
 import { getMusicApis, getProfile } from '../src/api/api';
 import { NeteaseBinder } from '../src/components/neteasebinder';
 import { MyPlaylist } from '../src/components/myplaylist';
-import { toastEnqueueOk, toastError, toastInfo } from '../src/utils/toast';
+import { toastEnqueueOk, toastError, toastInfo, toastRedInfo } from '../src/utils/toast';
 import { MusicSelector } from '../src/components/musicselector';
 import { QQMusicBinder } from '../src/components/qqmusicbinder';
 import { MusicQueue } from '../src/components/musicqueue';
@@ -67,7 +68,12 @@ export default function Home() {
   const [chatToSend, setChatToSend] = useState('');
   const [apis, setApis] = useState<string[]>([]);
   const t = useToast();
-  const [bvid, cid, aid] = nowPlaying?.music.id ? nowPlaying.music.id.split(',') : ['', '', ''];
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+
 
   const conn = useRef<Connection>();
 
@@ -97,6 +103,20 @@ export default function Home() {
               `歌曲 "${target.music.name}-${target.music.artists}" 被 ${operatorName} 置顶了`
             );
             return [target].concat(q.filter((x) => x.actionId !== actionId));
+          });
+        },
+        async (actionId: string, operatorName: string) => {
+          setQueue((q) => {
+            const target = q.find((x) => x.actionId === actionId);
+            if (target) {
+              toastRedInfo(
+                t,
+                `歌曲 "${target.music.name}-${target.music.artists.join(', ')}" 被 ${operatorName} 删除了`
+              );
+              // 从队列中移除这首歌
+              return q.filter((x) => x.actionId !== actionId);
+            }
+            return q;
           });
         },
         async (operatorName: string, _) => {
@@ -156,6 +176,9 @@ export default function Home() {
       setInited(true);
     }
   }, []);
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatContent]);
 
   return (
     <Box>
@@ -172,7 +195,7 @@ export default function Home() {
               <Card>
                 <CardHeader>
                   <Heading>{`欢迎, ${userName}!`}</Heading>
-                  <Text>现已支持b站视频播放,音画不同步只能刷新</Text>
+                  <Text>现已加入肯德基疯狂星期四豪华套餐</Text>
                 </CardHeader>
                 <CardBody>
                   <Stack>
@@ -220,6 +243,7 @@ export default function Home() {
                   </Stack>
                 </CardBody>
               </Card>
+              {/* 在线 */}
               <Card>
                 <CardHeader>
                   <Heading>在线</Heading>
@@ -229,61 +253,88 @@ export default function Home() {
                     {onlineUsers.map((u) => {
                       return (
                         <ListItem key={u.id}>
-                          <span
-                            style={{ color: u.id == "abyss" ? "red" : "black" }}>
-                          </span>
                           {u.name}
                         </ListItem>
                       );
                     })}
                   </UnorderedList>
-
                 </CardBody>
               </Card>
-              <Card>
+
+              {/* 聊天 */}
+              <Card h="400px" position="relative">
                 <CardHeader>
                   <Heading>聊天</Heading>
                 </CardHeader>
-                <CardBody>
-                  <Flex>
-                    <Input
-                      flex={1}
-                      value={chatToSend}
-                      onChange={(e) => setChatToSend(e.target.value)}
-                      onKeyDown={async (e) => {
-                        if (e.key === "Enter") {
-                          if (chatToSend === '' || chatToSend.length >= 30) {
-                            setChatToSend('');
-                            return;
-                          }
-                          await conn.current?.chatSay(chatToSend);
-                          setChatToSend('');
-                        }
-                      }}
-                    />
-                    <Button
-                      ml={2}
-                      onClick={async () => {
+
+                {/* Scrollable chat content */}
+                <CardBody
+                  overflowY="auto"
+                  maxH="300px"
+                  pb="50px"
+                >
+                  <UnorderedList spacing={3}>
+                    {chatContent.map((s, index) => (
+                      <ListItem key={index} display="flex">
+                        <Box
+                          color="black"
+                          borderRadius="md"
+                          px={4}
+                          py={2}
+                          maxWidth="70%"
+                        >
+                          <Text fontWeight="bold">{s.name}</Text>
+                          <Text>{s.content}</Text>
+                        </Box>
+                      </ListItem>
+                    ))}
+                  </UnorderedList>
+                  <div ref={chatEndRef} /> {/* 滚动锚点 */}
+                </CardBody>
+
+                {/* Fixed input box at the bottom */}
+                <Flex
+                  as="footer"
+                  position="absolute"
+                  bottom={0}
+                  left={0}
+                  width="100%"
+                  p={4}
+                  bg="white"
+                  boxShadow="0 -2px 5px rgba(0, 0, 0, 0.1)"
+                >
+                  <Input
+                    flex={1}
+                    value={chatToSend}
+                    onChange={(e) => setChatToSend(e.target.value)}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter") {
                         if (chatToSend === '' || chatToSend.length >= 30) {
                           setChatToSend('');
                           return;
                         }
                         await conn.current?.chatSay(chatToSend);
                         setChatToSend('');
-                      }}
-                    >
-                      发送
-                    </Button>
-                  </Flex>
-                  <UnorderedList>
-                    {chatContent.map((s) => (
-                      <ListItem key={Math.random() * 1000}>
-                        {`${s.name}: ${s.content}`}
-                      </ListItem>
-                    ))}
-                  </UnorderedList>
-                </CardBody>
+                      }
+                    }}
+                  />
+                  <Button
+                    ml={2}
+                    onClick={async () => {
+                      if (chatToSend === '' || chatToSend.length >= 30) {
+                        setChatToSend('');
+                        return;
+                      }
+                      await conn.current?.chatSay(chatToSend);
+                      setChatToSend('');
+                    }}
+                  >
+                    发送
+                  </Button>
+                </Flex>
               </Card>
+
+
             </Stack>
           </GridItem>
         </Stack>
@@ -302,7 +353,24 @@ export default function Home() {
                       <>
                         <Heading style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", fontWeight: "normal" }}>
                           {`由 ${nowPlaying?.enqueuer} 点歌`}
-                          {nowPlaying?.music.apiname === "NeteaseCloudMusic" && (
+                          <MusicPlayer
+                            src={src}
+                            playtime={playtime}
+                            nextClick={() => {
+                              conn.current?.nextSong();
+                            }}
+                            reset={() => {
+                              console.log('reset');
+                              conn.current!.requestSetNowPlaying();
+                              conn.current!.getMusicQueue().then((q) => {
+                                setQueue(q);
+                              });
+                            }}
+                            title={nowPlaying?.music.name || '暂无歌曲'}
+                            artists={nowPlaying?.music.artists || ['未知艺术家']} //artists array
+                            coverImage={nowPlaying?.music.imgUrl || '/default_cover.jpg'}
+                          />
+                          {/* {nowPlaying?.music.apiname === "NeteaseCloudMusic" && (
                             <img
                               src={nowPlaying?.music.imgUrl}
                               alt="音乐封面"
@@ -310,9 +378,9 @@ export default function Home() {
                               height={500}
                               style={{ display: "block", margin: "0 auto" }}
                             />
-                          )}
+                          )} */}
 
-                          {nowPlaying?.music.apiname === "Bilibili" && (
+                          {/* {nowPlaying?.music.apiname === "Bilibili" && (
                             <VideoPlayer
                               src={src}
                               playtime={playtime}
@@ -320,18 +388,18 @@ export default function Home() {
                               bvid={bvid}
                               cid={cid}
                             />
-                          )}
-                          <span style={{ textAlign: "center", marginBottom: "10px", fontWeight: "normal" }}>
+                          )} */}
+                          {/* <span style={{ textAlign: "center", marginBottom: "10px", fontWeight: "normal" }}>
                             {nowPlaying?.music.name} - {nowPlaying?.music.artists}
-                          </span>
+                          </span> */}
                         </Heading>
                       </>
                     ) : (
-                      <Heading style={{ fontWeight: "normal" }}>暂无歌曲正在播放</Heading>
+                      <Heading style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", fontWeight: "normal" }}>暂无歌曲正在播放</Heading>
                     )}
                   </Box>
 
-                  <MusicPlayer
+                  {/* <MusicPlayer
                     src={src}
                     playtime={playtime}
                     nextClick={() => {
@@ -344,13 +412,19 @@ export default function Home() {
                         setQueue(q);
                       });
                     }}
-                  />
+                    title={nowPlaying?.music.name || '暂无歌曲'}
+                    artists={nowPlaying?.music.artists || ['未知艺术家']} //artists array
+                    coverImage={nowPlaying?.music.imgUrl || '/default_cover.jpg'}
+                  /> */}
 
                   <MusicQueue
                     queue={queue}
                     top={(actionId) => {
                       conn.current!.topSong(actionId);
                     }}
+                    remove={(actionId) => {
+                      conn.current!.DelSong(actionId);
+                    }} // 传递删除函数
                   />
                 </TabPanel>
                 <TabPanel>

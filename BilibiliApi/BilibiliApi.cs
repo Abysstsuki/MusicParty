@@ -134,18 +134,50 @@ public class BilibiliApi : IMusicApi
         return j.data.list.Select(x => new PlayList(x.id.ToString(), x.title));
     }
 
+    // public async Task<IEnumerable<Music>> GetMusicsByPlaylistAsync(string id, int offset = 0)
+    // {
+    //     var resp = await _http.GetStringAsync(
+    //         $"https://api.bilibili.com/x/v3/fav/resource/list?platform=web&media_id={id}&ps=10&pn={offset / 10 + 1}");
+    //     var j = JsonSerializer.Deserialize<FavDetailJson.RootObject>(resp);
+    //     if (j is null || j.code != 0)
+    //         throw new Exception($"Unable to get playlist musics, message: {resp}");
+    //     if (j.data?.medias is null)
+    //         return Array.Empty<Music>();
+    //     return j.data.medias.Where(x => x.title != "已失效视频" && x.type == 2)
+    //         .Select(x => new Music("Bilibili", x.bvid, x.title, new[] { x.upper.name }));
+    // }
+
     public async Task<IEnumerable<Music>> GetMusicsByPlaylistAsync(string id, int offset = 0)
     {
+        // 调用 Bilibili API 获取收藏夹中的资源列表
         var resp = await _http.GetStringAsync(
             $"https://api.bilibili.com/x/v3/fav/resource/list?platform=web&media_id={id}&ps=10&pn={offset / 10 + 1}");
+
+        // 解析返回的 JSON 数据
         var j = JsonSerializer.Deserialize<FavDetailJson.RootObject>(resp);
+
+        // 检查返回数据是否为空，或者返回代码是否为 0（成功）
         if (j is null || j.code != 0)
             throw new Exception($"Unable to get playlist musics, message: {resp}");
+
+        // 检查是否存在资源数据，如果没有则返回空
         if (j.data?.medias is null)
             return Array.Empty<Music>();
-        return j.data.medias.Where(x => x.title != "已失效视频" && x.type == 2)
-            .Select(x => new Music("Bilibili", x.bvid, x.title, new[] { x.upper.name }));
+
+        // 过滤出有效的视频资源，并提取必要信息，包括封面图片 URL
+        return j.data.medias
+            .Where(x => x.title != "已失效视频" && x.type == 2) // 筛选出有效的视频资源
+            .Select(x => new Music(
+                "Bilibili",              // 平台名称
+                x.bvid,                  // Bilibili 视频 ID
+                x.title,                 // 视频标题
+                new[] { x.upper.name },   // 上传者名称
+                x.cover                  // 封面图片 URL，提取 `cover` 字段
+            ));
     }
+
+
+
 
     #region JsonClasses
 
@@ -220,7 +252,8 @@ public class BilibiliApi : IMusicApi
             long type,
             string title,
             Upper1 upper,
-            string bvid
+            string bvid,
+            string cover
         );
 
         public record Upper1(

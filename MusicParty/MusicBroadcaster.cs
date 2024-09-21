@@ -32,7 +32,7 @@ public class MusicBroadcaster
             {
                 if (MusicQueue.TryDequeue(out var musicOrder))
                 {
-                    await MusicDequeued();
+                    await Musicrefqueued();
                     if (!_apis.TryGetMusicApi(musicOrder.Service, out var ma))
                     {
                         _logger.LogError(new ArgumentException($"Unknown api provider {musicOrder.Service}",
@@ -41,7 +41,7 @@ public class MusicBroadcaster
                         continue;
                     }
 
-                    for (var i = 0;; i++) // try 3 times before skip.
+                    for (var i = 0; ; i++) // try 3 times before skip.
                     {
                         try
                         {
@@ -100,7 +100,15 @@ public class MusicBroadcaster
         await MusicCut(operatorId, NowPlaying.Value.music);
         NowPlaying = null;
     }
-
+    public async Task DelSong(string actionId, string operatorId)
+    {
+        var removed = MusicQueue.FirstOrDefault(x => x.ActionId == actionId);
+        if (removed != null)
+        {
+            MusicQueue.Remove(removed);
+            await MusicDequeued(_userManager.FindUserById(operatorId)!.Name, actionId); // 确保异步通知
+        }
+    }
     public async Task TopSong(string actionId, string operatorId)
     {
         MusicQueue.TopItem(x => x.ActionId == actionId);
@@ -113,14 +121,18 @@ public class MusicBroadcaster
             0); // arg3 is music already played time
     }
 
+    private async Task Musicrefqueued()
+    {
+        await _context.Clients.All.SendAsync(nameof(Musicrefqueued));
+    }
     private async Task MusicEnqueued(string actionId, Music music, string enqueuerName)
     {
         await _context.Clients.All.SendAsync(nameof(MusicEnqueued), actionId, music, enqueuerName);
     }
 
-    private async Task MusicDequeued()
+    private async Task MusicDequeued(string operatorName, string actionId)
     {
-        await _context.Clients.All.SendAsync(nameof(MusicDequeued));
+        await _context.Clients.All.SendAsync(nameof(MusicDequeued), actionId, operatorName);
     }
 
     private async Task MusicTopped(string actionId, string operatorName)

@@ -1,6 +1,7 @@
 import * as sr from "@microsoft/signalr";
 export class Connection {
   private _conn: sr.HubConnection;
+  
   constructor(
     url: string,
     setNowPlaying: (
@@ -13,8 +14,9 @@ export class Connection {
       music: Music,
       enqueuerName: string
     ) => void,
-    musicDequeued: () => void,
+    musicrefqueued: () => void,
     musicTopped: (actionId: string, operatorName: string) => void,
+    musicDequeued: (actionId: string, operatorName: string) => void, // 修改了此处参数，传递删除者名称
     musicCut: (operatorName: string, music: Music) => void,
     onlineUserLogin: (id: string, name: string) => void,
     onlineUserLogout: (id: string) => void,
@@ -26,8 +28,9 @@ export class Connection {
     this._conn = new sr.HubConnectionBuilder().withUrl(url).build();
     this._conn.on("SetNowPlaying", setNowPlaying);
     this._conn.on("MusicEnqueued", musicEnqueued);
-    this._conn.on("MusicDequeued", musicDequeued);
+    this._conn.on("Musicrefqueued", musicrefqueued);
     this._conn.on("MusicTopped", musicTopped);
+    this._conn.on("MusicDequeued", musicDequeued); // 添加处理删除的事件
     this._conn.on("MusicCut", musicCut);
     this._conn.on("OnlineUserLogin", onlineUserLogin);
     this._conn.on("OnlineUserLogout", onlineUserLogout);
@@ -56,6 +59,9 @@ export class Connection {
   }
   public async nextSong(): Promise<void> {
     await this._conn.invoke("NextSong");
+  }
+  public async DelSong(actionId: string): Promise<void> {
+    await this._conn.invoke("DelSong", actionId); // 假设后端实现了 RemoveMusic 方法
   }
   public async topSong(actionId: string): Promise<void> {
     await this._conn.invoke("TopSong", actionId);
