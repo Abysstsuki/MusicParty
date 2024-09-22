@@ -21,11 +21,11 @@ import {
   SliderFilledTrack,
   SliderThumb,
   Center,
-
+  Link
 } from "@chakra-ui/react";
-import { ArrowRightIcon, RepeatIcon } from "@chakra-ui/icons";
+import { ArrowRightIcon, RepeatIcon, DownloadIcon } from "@chakra-ui/icons"; // 导入 DownloadIcon 图标
 import React, { useEffect, useRef, useState } from "react";
-import { platform } from "os";
+import { toastInfo } from "../utils/toast";
 
 export const MusicPlayer = (props: {
   src: string;
@@ -35,23 +35,63 @@ export const MusicPlayer = (props: {
   title: string;
   artists: string[];
   coverImage: string;
+  downloadUrl?: string; // 将 downloadUrl 设置为可选属性
+  apiname: string
 }) => {
-  const artistString = props.artists.join(', '); // 在组件中处理拼接逻辑
+  const artistString = props.artists.join(", ");
   const audio = useRef<HTMLAudioElement | null>(null);
   const [length, setLength] = useState(100);
   const [time, setTime] = useState(0);
-  // const [volume, setVolume] = useState(0.3);
   const [volume, setVolume] = useState(0.2); // 默认音量
   const t = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
+
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
 
-  useEffect(() => {
+  // 下载文件的函数
+  const downloadSong = async () => {
+    if (!props.downloadUrl) return;
+    // 调用 toastInfo 显示下载开始提示
+    toastInfo(t, `《${props.title}》已经开始下载，请等待...`);
+    try {
 
+      // 获取文件数据
+      const response = await fetch(props.downloadUrl);
+      const blob = await response.blob(); // 将响应转换为 Blob 对象
+
+      // 创建临时下载链接
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+
+      // 设置下载的文件名
+      link.download = `${props.title} - ${props.artists.join(", ")}.mp3`; // 可以修改为想要的文件名
+      document.body.appendChild(link);
+      link.click();
+
+      // 移除临时链接
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+
+
+    } catch (error) {
+      console.error("下载失败:", error);
+      t({
+        title: "下载失败",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+
+  useEffect(() => {
     if (!audio.current) {
       audio.current = new Audio();
       audio.current.addEventListener("durationchange", () => {
@@ -62,16 +102,13 @@ export const MusicPlayer = (props: {
       });
     }
 
-    // 仅当 src 改变时才设置音频源
     if (props.src && audio.current.src !== props.src) {
       audio.current.src = props.src;
       if (props.playtime !== 0) audio.current.currentTime = props.playtime;
     }
 
-    // 设置音量
     audio.current.volume = volume;
 
-    // 避免重新播放
     if (audio.current.paused) {
       audio.current.play().catch((e: DOMException) => {
         if (e.message === "The play() request was interrupted because the media was removed from the document.") {
@@ -82,16 +119,6 @@ export const MusicPlayer = (props: {
       });
     }
   }, [props.src, props.playtime, volume]);
-
-
-  // 处理音量滑块变化
-  const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newVolume = parseFloat(event.target.value);
-    setVolume(newVolume);
-    if (audio.current) {
-      audio.current.volume = newVolume;
-    }
-  };
 
   return (
     <>
@@ -104,7 +131,6 @@ export const MusicPlayer = (props: {
         borderRadius="lg"
         boxShadow="lg"
         w="100%"
-        //maxW="900px"
         mx="auto"
       >
         {/* 封面区域 */}
@@ -128,15 +154,18 @@ export const MusicPlayer = (props: {
             background="url('/static_record.png') no-repeat center"
             backgroundSize="contain"
             animation="spin 20s linear infinite"
-          >
-          </Box>
+          ></Box>
         </Box>
 
         {/* 信息与控制区域 */}
-        <Box flex={1} width="100%" >
+        <Box flex={1} width="100%">
           <Box mb={4} textAlign={{ base: "center", md: "left" }}>
-            <Text fontSize={{ base: "2xl", md: "4xl" }} fontWeight="bold">{props.title}</Text>
-            <Text fontSize={{ base: "md", md: "lg" }} color="gray.600">{artistString}</Text>
+            <Text fontSize={{ base: "2xl", md: "4xl" }} fontWeight="bold">
+              {props.title}
+            </Text>
+            <Text fontSize={{ base: "md", md: "lg" }} color="gray.600">
+              {artistString}
+            </Text>
           </Box>
 
           {/* 进度条和时间显示 */}
@@ -144,22 +173,33 @@ export const MusicPlayer = (props: {
             <Progress
               value={time}
               max={length}
-              w={{ base: "90%", md: "100%" }} // 手机端宽度设置为90%，桌面端100%
+              w={{ base: "90%", md: "100%" }}
               h="12px"
               borderRadius="full"
               bg="gray.300"
               sx={{
-                "& > div": { backgroundColor: "#4caf50", borderRadius: "full" }, // 自定义进度条颜色
+                "& > div": { backgroundColor: "#4caf50", borderRadius: "full" },
               }}
             />
           </Flex>
 
-          <Text textAlign="center" fontSize={{ base: "sm", md: "md" }}>{`${formatTime(time)} / ${formatTime(length)}`}</Text>
+          <Text textAlign="center" fontSize={{ base: "sm", md: "md" }}>{`${formatTime(
+            time
+          )} / ${formatTime(length)}`}</Text>
 
           {/* 音量控制和按钮区域 */}
-          <Flex alignItems="center" justifyContent="space-between" mt={4} direction={{ base: "column", md: "row" }}>
+          <Flex
+            alignItems="center"
+            justifyContent="space-between"
+            mt={4}
+            direction={{ base: "column", md: "row" }}
+          >
             {/* 音量滑块 */}
-            <Box width="100%" maxW={{ base: "200px", md: "300px" }} textAlign="center">
+            <Box
+              width="100%"
+              maxW={{ base: "200px", md: "300px" }}
+              textAlign="center"
+            >
               <Text fontSize={{ base: "md", md: "lg" }}>音量</Text>
               <Slider
                 min={0}
@@ -204,6 +244,21 @@ export const MusicPlayer = (props: {
                   size="lg"
                 />
               </Tooltip>
+
+              {/* 下载按钮 */}
+              {/* 仅当 apiname 不为 'bilibili' 时显示下载按钮 */}
+              {props.apiname !== "Bilibili" && (
+                <Tooltip hasArrow label="下载歌曲">
+                  <IconButton
+                    aria-label="下载"
+                    icon={<DownloadIcon />}
+                    onClick={downloadSong}
+                    colorScheme="green"
+                    size="lg"
+                    ml={2}
+                  />
+                </Tooltip>
+              )}
             </Flex>
           </Flex>
         </Box>

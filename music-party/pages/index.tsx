@@ -369,6 +369,8 @@ export default function Home() {
                             title={nowPlaying?.music.name || '暂无歌曲'}
                             artists={nowPlaying?.music.artists || ['未知艺术家']} //artists array
                             coverImage={nowPlaying?.music.imgUrl || '/default_cover.jpg'}
+                            downloadUrl={nowPlaying?.music.url || ""}  // 这里传入下载链接
+                            apiname={nowPlaying?.music.apiname}
                           />
                           {/* {nowPlaying?.music.apiname === "NeteaseCloudMusic" && (
                             <img
