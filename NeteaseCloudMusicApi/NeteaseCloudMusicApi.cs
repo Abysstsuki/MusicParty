@@ -170,7 +170,7 @@ public class NeteaseCloudMusicApi : IMusicApi
     public async Task<IEnumerable<Music>> SearchMusicByNameAsync(string name, int offset = 0)
     {
         // 调用网易云音乐的搜索接口
-        var resp = await _http.GetStringAsync(_url + $"/search?keywords={name}");
+        var resp = await _http.GetStringAsync(_url + $"/search?keywords={name}&limit=90");
         var j = JsonNode.Parse(resp)!;
 
         // 判断返回的 code 是否成功

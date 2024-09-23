@@ -226,7 +226,7 @@ public class QQMusicApi : IMusicApi
     public async Task<IEnumerable<Music>> SearchMusicByNameAsync(string name, int offset = 0)
     {
         // 调用 QQ 音乐的搜索接口
-        var resp = await _http.GetStringAsync(_url + $"/search?key={name}");
+        var resp = await _http.GetStringAsync(_url + $"/search?key={name}&pageSize=90");
         var j = JsonNode.Parse(resp)!;
 
         // 判断返回的 result 是否成功
